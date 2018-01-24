@@ -1,5 +1,6 @@
 package geneticalgorithm;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,7 +25,7 @@ public class GAImplementation {
 
         for (SolutionContainer solutionContainer : solutionContainers) {
             solutionContainer.solutions = IntStream.range(0, nVar)
-                    .mapToObj(Integer::valueOf)
+                    .boxed()
                     .collect(Collectors.toList());
             Collections.shuffle(solutionContainer.solutions);
             binPackingCost(solutionContainer, model);
@@ -34,6 +35,19 @@ public class GAImplementation {
     }
 
     private void binPackingCost(SolutionContainer solutionContainer, Model model) {
+        List<Integer> sep = new ArrayList<>();
+        for (int i = 0; i < solutionContainer.solutions.size(); i++) {
+            if (solutionContainer.solutions.get(i) > model.n) {
+                sep.add(i);
+            }
+        }
 
+        List<Integer> from = new ArrayList<>();
+        from.add(1);
+        from.addAll(sep.stream().map(i->i+1).collect(Collectors.toList()));
+
+        List<Integer> to = new ArrayList<>();
+        from.addAll(sep.stream().map(i->i-1).collect(Collectors.toList()));
+        from.add(model.n*2 -1);
     }
 }
