@@ -6,12 +6,11 @@ import java.util.List;
 public class SolutionContainer {
 
     List<Integer> positions;
-    List<Float> costs;
-    List<Integer> solutions;
+    double cost;
+    Solution solution;
 
     public SolutionContainer() {
-        this.costs = new ArrayList<>();
         this.positions = new ArrayList<>();
-        this.solutions = new ArrayList<>();
+        solution = new Solution();
     }
 }
