@@ -1,9 +1,9 @@
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.Scanner;
 
-class PlayerTest {
+public class PlayerTest {
 
     @Test
     public void launch() {

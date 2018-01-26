@@ -18,13 +18,13 @@ public class GAImplementation {
 
     //Init
     List<SolutionContainer> solutionContainers = IntStream.range(0, nPop)
-            .mapToObj(i -> new SolutionContainer())
-            .collect(Collectors.toList());
+      .mapToObj(i -> new SolutionContainer())
+      .collect(Collectors.toList());
 
     for (SolutionContainer solutionContainer : solutionContainers) {
       solutionContainer.positions = IntStream.range(0, nVar)
-              .boxed()
-              .collect(Collectors.toList());
+        .boxed()
+        .collect(Collectors.toList());
       Collections.shuffle(solutionContainer.positions);
       computeBinPackingCost(solutionContainer, model);
     }
@@ -35,7 +35,7 @@ public class GAImplementation {
 
     SolutionContainer bestSol = solutionContainers.get(0);
 
-    double worstCost = solutionContainers.stream().mapToDouble(s->s.cost).max().getAsDouble();
+    double worstCost = solutionContainers.stream().mapToDouble(s -> s.cost).max().getAsDouble();
 
     List<Double> bestCost = new ArrayList<>(maxIt);
 
@@ -66,7 +66,7 @@ public class GAImplementation {
         int parentIndex = new Random().nextInt(nPop);
 
         //Select Parent
-        SolutionContainer parent = solutionContainers.get(i);
+        SolutionContainer parent = solutionContainers.get(parentIndex);
 
         //Apply Mutation
         permutationMutate(mutationSolutions, parent.positions);
@@ -79,7 +79,6 @@ public class GAImplementation {
       // Merge Population
       solutionContainers.addAll(crossOverSolutions);
       solutionContainers.addAll(mutationSolutions);
-
 
       // Sort Population
       solutionContainers.sort(solutionContainerComparator);
@@ -102,8 +101,8 @@ public class GAImplementation {
 
   private List<Double> computeProbabilities(int beta, List<SolutionContainer> solutionContainers, double worstCost) {
     List<Double> p = solutionContainers.stream()
-            .map(s -> Math.exp(-beta * s.cost / worstCost))
-            .collect(Collectors.toList());
+      .map(s -> Math.exp(-beta * s.cost / worstCost))
+      .collect(Collectors.toList());
     double pSum = p.stream().mapToDouble(Double::valueOf).sum();
     p = p.stream().map(d -> d / pSum).collect(Collectors.toList());
     return p;
@@ -114,16 +113,16 @@ public class GAImplementation {
     int mode = new Random().nextInt(2);
     SolutionContainer solutionContainer = new SolutionContainer();
     switch (mode) {
-      case 1:
+      case 0:
         // Swap
         solutionContainer.positions = doSwap(positions);
         break;
 
-      case 2:
+      case 1:
         // Reversion
         solutionContainer.positions = doReversion(positions);
         break;
-      case 3:
+      case 2:
         // Insertion
         solutionContainer.positions = doInsertion(positions);
         break;
@@ -140,8 +139,8 @@ public class GAImplementation {
     int i2 = Math.max(j1, j2);
 
     List<Integer> newPositions = IntStream.range(0, i1 - 1)
-            .mapToObj(i -> positions.get(i))
-            .collect(Collectors.toList());
+      .mapToObj(i -> positions.get(i))
+      .collect(Collectors.toList());
     IntStream.range(i1 + 1, i2).forEach(i -> newPositions.add(positions.get(i)));
     newPositions.add(positions.get(i1));
     IntStream.range(i2 + 1, positions.size()).forEach(i -> newPositions.add(positions.get(i)));
@@ -151,12 +150,18 @@ public class GAImplementation {
 
   private List<Integer> doReversion(List<Integer> positions) {
     Random random = new Random();
-    int i1 = random.nextInt(positions.size());
-    int i2 = random.nextInt(positions.size());
-    List<Integer> newPositions = IntStream.range(Math.min(i1, i2), Math.max(i1, i2))
-            .mapToObj(i -> positions.get(i))
-            .collect(Collectors.toList());
-    Collections.reverse(newPositions);
+    int j1 = random.nextInt(positions.size());
+    int j2 = random.nextInt(positions.size());
+    int i1 = Math.min(j1, j2);
+    int i2 = Math.max(j1, j2);
+
+    List<Integer> newPositions = IntStream.range(0, i1).mapToObj(i -> positions.get(i)).collect(Collectors.toList());
+    List<Integer> positionsToReverse = IntStream.range(i1, i2)
+      .mapToObj(i -> positions.get(i))
+      .collect(Collectors.toList());
+    Collections.reverse(positionsToReverse);
+    newPositions.addAll(positionsToReverse);
+    newPositions.addAll(IntStream.range(12, positions.size()).mapToObj(i -> positions.get(i)).collect(Collectors.toList()));
     return newPositions;
   }
 
@@ -178,9 +183,9 @@ public class GAImplementation {
     List<Integer> x22 = IntStream.range(c, positions2.size()).mapToObj(i -> positions2.get(i)).collect(Collectors.toList());
 
     Set<Integer> r1 = new HashSet<>(x11);
-    r1.addAll(x22);
+    r1.retainAll(x22);
     Set<Integer> r2 = new HashSet<>(x12);
-    r2.addAll(x21);
+    r2.retainAll(x21);
 
     Iterator<Integer> r1Iterator = r1.iterator();
     Iterator<Integer> r2Iterator = r2.iterator();
@@ -223,7 +228,7 @@ public class GAImplementation {
   private void computeBinPackingCost(SolutionContainer solutionContainer, Model model) {
     List<Integer> sep = new ArrayList<>();
     for (int i = 0; i < solutionContainer.positions.size(); i++) {
-      if (solutionContainer.positions.get(i) >= model.n-1) {
+      if (solutionContainer.positions.get(i) >= model.n - 1) {
         sep.add(i);
       }
     }
