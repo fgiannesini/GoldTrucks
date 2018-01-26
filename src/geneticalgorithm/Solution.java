@@ -5,6 +5,6 @@ import java.util.List;
 public class Solution {
   int nBin;
   List<List<Integer>> b;
-  List<Integer> viol;
+  List<Float> viol;
   double meanViol;
 }

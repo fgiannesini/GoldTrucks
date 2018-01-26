@@ -30,7 +30,6 @@ public class GAImplementation {
     }
 
     Comparator<SolutionContainer> solutionContainerComparator = Comparator.comparingDouble(s -> s.cost);
-    solutionContainerComparator = solutionContainerComparator.reversed();
     solutionContainers.sort(solutionContainerComparator);
 
     SolutionContainer bestSol = solutionContainers.get(0);
@@ -83,7 +82,7 @@ public class GAImplementation {
       // Sort Population
       solutionContainers.sort(solutionContainerComparator);
 
-      // Truancate Extra Memebrs
+      // Truancate Extra Members
       solutionContainers = solutionContainers.subList(0, nPop);
 
       // Update Best Solution Ever Found
@@ -97,6 +96,7 @@ public class GAImplementation {
 
       System.out.println("Iteration " + i + " : Best Cost = " + bestSol.cost);
     }
+
   }
 
   private List<Double> computeProbabilities(int beta, List<SolutionContainer> solutionContainers, double worstCost) {
@@ -161,7 +161,7 @@ public class GAImplementation {
       .collect(Collectors.toList());
     Collections.reverse(positionsToReverse);
     newPositions.addAll(positionsToReverse);
-    newPositions.addAll(IntStream.range(12, positions.size()).mapToObj(i -> positions.get(i)).collect(Collectors.toList()));
+    newPositions.addAll(IntStream.range(i2, positions.size()).mapToObj(i -> positions.get(i)).collect(Collectors.toList()));
     return newPositions;
   }
 
@@ -228,7 +228,7 @@ public class GAImplementation {
   private void computeBinPackingCost(SolutionContainer solutionContainer, Model model) {
     List<Integer> sep = new ArrayList<>();
     for (int i = 0; i < solutionContainer.positions.size(); i++) {
-      if (solutionContainer.positions.get(i) >= model.n - 1) {
+      if (solutionContainer.positions.get(i) >= model.n) {
         sep.add(i);
       }
     }
@@ -252,14 +252,14 @@ public class GAImplementation {
       }
     }
 
-    List<Integer> viol = new ArrayList<>();
+    List<Float> viol = new ArrayList<>();
     for (List<Integer> aB : b) {
       int vi = aB.stream().mapToInt(j -> model.v[j]).sum();
-      viol.add((int)Math.max(((float)vi / (float)model.vMax) - 1, 0));
+      viol.add(Math.max(((float)vi / (float)model.vMax) - 1, 0));
     }
 
     solutionContainer.solution.b = b;
-    solutionContainer.solution.meanViol = viol.stream().mapToInt(Integer::intValue).average().getAsDouble();
+    viol.stream().mapToDouble(Float::doubleValue).average().ifPresent(d -> solutionContainer.solution.meanViol = d);
     solutionContainer.solution.nBin = b.size();
     solutionContainer.solution.viol = viol;
 
