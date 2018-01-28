@@ -1,9 +1,79 @@
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
-import java.util.Scanner;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class PlayerTest {
+
+    @Test
+    public void addBoxInTrucks() {
+        Player player = new Player();
+        player.TRUCK_COUNT = 2;
+        List<Player.Box> boxList = Arrays.asList(
+                new Player.Box(0, 10.0f, 30),
+                new Player.Box(1, 10.0f, 30),
+                new Player.Box(2, 10.0f, 30)
+        );
+        List<Player.Truck> trucks = player.addBoxInTrucks(boxList, 10);
+        Assert.assertEquals(2, trucks.get(0).boxList.size());
+        Assert.assertEquals(1, trucks.get(1).boxList.size());
+    }
+
+    @Test
+    public void permutationCrossOver() {
+        Player player = new Player();
+        Random random = new Random();
+        Player.Container container1 = new Player.Container();
+        Player.Container container2 = new Player.Container();
+        Comparator<Player.Box> boxComparator = Comparator.comparingInt(b -> b.index);
+        boxComparator = boxComparator.thenComparing(Comparator.comparingDouble(b -> b.weight));
+        boxComparator = boxComparator.thenComparing(Comparator.comparingDouble(b -> b.volume));
+
+        int boxSize = 10;
+
+        for (int ite = 0; ite < 100; ite++) {
+            container1.boxList = IntStream.range(0, boxSize).mapToObj(i -> new Player.Box(i, random.nextFloat(), random.nextFloat())).collect(Collectors.toList());
+            container2.boxList = IntStream.range(0, boxSize).mapToObj(i -> new Player.Box(i, random.nextFloat(), random.nextFloat())).collect(Collectors.toList());
+
+            List<Player.Container> crossOverSolution = new ArrayList<>(2);
+            player.permuationCrossOver(crossOverSolution, random, container1, container2);
+            Assert.assertEquals(2, crossOverSolution.size());
+            crossOverSolution.forEach(s -> Assert.assertEquals(boxSize, s.boxList.size()));
+            Assert.assertArrayEquals(
+                    Stream.concat(container1.boxList.stream(), container2.boxList.stream()).sorted(boxComparator).toArray(),
+                    crossOverSolution.stream().flatMap(c -> c.boxList.stream()).sorted(boxComparator).toArray()
+            );
+        }
+    }
+
+    @Test
+    public void permutationMutate() {
+        Player player = new Player();
+        Random random = new Random();
+        Player.Container container1 = new Player.Container();
+        Comparator<Player.Box> boxComparator = Comparator.comparingInt(b -> b.index);
+        boxComparator = boxComparator.thenComparing(Comparator.comparingDouble(b -> b.weight));
+        boxComparator = boxComparator.thenComparing(Comparator.comparingDouble(b -> b.volume));
+
+        int boxSize = 10;
+
+        for (int ite = 0; ite < 100; ite++) {
+            container1.boxList = IntStream.range(0, boxSize).mapToObj(i -> new Player.Box(i, random.nextFloat(), random.nextFloat())).collect(Collectors.toList());
+
+            List<Player.Container> mutateSolution = new ArrayList<>(1);
+            player.permutationMutate(mutateSolution, container1, random);
+            Assert.assertEquals(1, mutateSolution.size());
+            mutateSolution.forEach(s -> Assert.assertEquals(boxSize, s.boxList.size()));
+            Assert.assertArrayEquals(
+                    container1.boxList.stream().sorted(boxComparator).toArray(),
+                    mutateSolution.stream().flatMap(c -> c.boxList.stream()).sorted(boxComparator).toArray()
+            );
+        }
+    }
 
     @Test
     public void launch() {

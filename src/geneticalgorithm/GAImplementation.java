@@ -14,7 +14,6 @@ public class GAImplementation {
     int nc = 2 * Math.round(pc * nPop / 2);
     float pm = 0.8f;
     int nm = Math.round(pm * nPop);
-    int beta = 5;
 
     //Init
     List<SolutionContainer> solutionContainers = IntStream.range(0, nPop)
@@ -34,21 +33,18 @@ public class GAImplementation {
 
     SolutionContainer bestSol = solutionContainers.get(0);
 
-    double worstCost = solutionContainers.stream().mapToDouble(s -> s.cost).max().getAsDouble();
-
     List<Double> bestCost = new ArrayList<>(maxIt);
 
     for (int i = 0; i < maxIt; i++) {
-      //Probabilities
-      List<Double> p = computeProbabilities(beta, solutionContainers, worstCost);
 
       //CrossOver
       List<SolutionContainer> crossOverSolutions = new ArrayList<>();
+      Random random = new Random();
       for (int k = 0; k < nc / 2; k++) {
-        int i1 = rouletteWeelSelection(p);
+        int i1 = random.nextInt(nPop);
         SolutionContainer solution1 = solutionContainers.get(i1);
 
-        int i2 = rouletteWeelSelection(p);
+        int i2 = random.nextInt(nPop);
         SolutionContainer solution2 = solutionContainers.get(i2);
 
         permuationCrossOver(crossOverSolutions, solution1.positions, solution2.positions);
@@ -62,7 +58,7 @@ public class GAImplementation {
       List<SolutionContainer> mutationSolutions = new ArrayList<>();
       for (int k = 0; k < nm; k++) {
         //Select Parent Index
-        int parentIndex = new Random().nextInt(nPop);
+        int parentIndex = random.nextInt(nPop);
 
         //Select Parent
         SolutionContainer parent = solutionContainers.get(parentIndex);
@@ -88,9 +84,6 @@ public class GAImplementation {
       // Update Best Solution Ever Found
       bestSol = solutionContainers.get(0);
 
-      // Update Worst Cost
-      worstCost = solutionContainers.stream().mapToDouble(s -> s.cost).max().getAsDouble();
-
       // Update Best Cost Ever Found
       bestCost.add(bestSol.cost);
 
@@ -101,22 +94,13 @@ public class GAImplementation {
             .forEach(System.out::println);
   }
 
-  private List<Double> computeProbabilities(int beta, List<SolutionContainer> solutionContainers, double worstCost) {
-    List<Double> p = solutionContainers.stream()
-      .map(s -> Math.exp(-beta * s.cost / worstCost))
-      .collect(Collectors.toList());
-    double pSum = p.stream().mapToDouble(Double::valueOf).sum();
-    p = p.stream().map(d -> d / pSum).collect(Collectors.toList());
-    return p;
-  }
-
   private void permutationMutate(List<SolutionContainer> mutationSolutions, List<Integer> positions) {
 
     int mode = new Random().nextInt(3);
     SolutionContainer solutionContainer = new SolutionContainer();
     switch (mode) {
       case 0:
-        // Swap
+        //Swap
         solutionContainer.positions = doSwap(positions);
         break;
       case 1:
@@ -218,18 +202,6 @@ public class GAImplementation {
     crossOverSolutions.add(solutionContainer2);
   }
 
-  private int rouletteWeelSelection(List<Double> p) {
-    double random = new Random().nextDouble();
-    double cumul = 0;
-    for (int i = 0; i < p.size(); i++) {
-      cumul += p.get(i);
-      if (cumul > random) {
-        return i;
-      }
-    }
-    return 0;
-  }
-
   public void computeBinPackingCost(SolutionContainer solutionContainer, Model model) {
     List<Integer> sep = new ArrayList<>();
     for (int i = 0; i < solutionContainer.positions.size(); i++) {
@@ -260,17 +232,26 @@ public class GAImplementation {
       }
     }
 
-    List<Float> viol = new ArrayList<>();
-    for (List<Integer> aB : b) {
-      int vi = aB.stream().mapToInt(j -> model.v[j]).sum();
-      viol.add(Math.max(((float)vi / (float)model.vMax) - 1, 0));
-    }
+    List<Float> viol = b.stream()
+        .map(aB-> aB.stream().mapToInt(j -> model.v[j]).sum())
+        .map(vi->Math.max(((float)vi / (float)model.vMax) - 1, 0))
+        .collect(Collectors.toList());
 
     solutionContainer.solution.b = b;
-    viol.stream().mapToDouble(Float::doubleValue).average().ifPresent(d -> solutionContainer.solution.meanViol = d);
+    viol.stream()
+            .mapToDouble(Float::doubleValue)
+            .average()
+            .ifPresent(d -> solutionContainer.solution.meanViol = d);
     solutionContainer.solution.nBin = b.size();
     solutionContainer.solution.viol = viol;
 
-    solutionContainer.cost = b.size() + 10 * model.n * solutionContainer.solution.meanViol;
+    List<Integer> solutionSum = b.stream()
+            .map(aB-> aB.stream().mapToInt(j -> model.v[j]).sum())
+            .collect(Collectors.toList());
+
+    double solutionMean =solutionSum.stream().mapToInt(Integer::intValue).average().orElse(0);
+    double errorSum = solutionSum.stream().mapToDouble(i->Math.abs(i-solutionMean)).sum();
+
+    solutionContainer.cost = errorSum + 100 * b.size() + 1000 * model.n * solutionContainer.solution.meanViol;
   }
 }
