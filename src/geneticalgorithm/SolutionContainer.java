@@ -5,7 +5,7 @@ import java.util.List;
 
 public class SolutionContainer {
 
-    List<Integer> positions;
+    int[] positions;
     double cost;
     Solution solution;
 
