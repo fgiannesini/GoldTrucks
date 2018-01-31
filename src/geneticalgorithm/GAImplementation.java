@@ -1,6 +1,9 @@
 package geneticalgorithm;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -18,6 +21,7 @@ public class GAImplementation {
 
         //Init
         Random random = new Random();
+        List<SolutionContainer> solutionContainers = new ArrayList<>();
 
         for (int j = 0; j < nPop; j++) {
             SolutionContainer solutionContainer = new SolutionContainer();
@@ -29,9 +33,11 @@ public class GAImplementation {
                 solutionContainer.positions[randomPosition] = temp;
             }
             computeBinPackingCost(solutionContainer, model);
+            solutionContainers.add(solutionContainer);
         }
 
         Comparator<SolutionContainer> solutionContainerComparator = Comparator.comparingDouble(s -> s.cost);
+
         solutionContainers.sort(solutionContainerComparator);
 
         SolutionContainer bestSol = solutionContainers.get(0);
@@ -49,7 +55,7 @@ public class GAImplementation {
                 int i2 = random.nextInt(nPop);
                 SolutionContainer solution2 = solutionContainers.get(i2);
 
-                permuationCrossOver(crossOverSolutions, solution1.positions, solution2.positions);
+                permuationCrossOver(crossOverSolutions, solution1.positions, solution2.positions, random);
 
                 int index = crossOverSolutions.size() - 1;
                 computeBinPackingCost(crossOverSolutions.get(index), model);
@@ -66,7 +72,7 @@ public class GAImplementation {
                 SolutionContainer parent = solutionContainers.get(parentIndex);
 
                 //Apply Mutation
-                permutationMutate(mutationSolutions, parent.positions);
+                permutationMutate(mutationSolutions, parent.positions, random);
 
                 //Evaluate Mutant
                 int index = mutationSolutions.size() - 1;
@@ -93,31 +99,30 @@ public class GAImplementation {
                 .forEach(System.out::println);
     }
 
-    private void permutationMutate(List<SolutionContainer> mutationSolutions, int[] positions) {
+    void permutationMutate(List<SolutionContainer> mutationSolutions, int[] positions, Random random) {
 
-        int mode = new Random().nextInt(3);
+        int mode = random.nextInt(3);
         SolutionContainer solutionContainer = new SolutionContainer();
         switch (mode) {
             case 0:
                 //Swap
-                solutionContainer.positions = doSwap(positions);
+                solutionContainer.positions = doSwap(positions, random);
                 break;
             case 1:
                 // Reversion
-                solutionContainer.positions = doReversion(positions);
+                solutionContainer.positions = doReversion(positions, random);
                 break;
             case 2:
                 // Insertion
-                solutionContainer.positions = doInsertion(positions);
+                solutionContainer.positions = doInsertion(positions, random);
                 break;
             default:
         }
         mutationSolutions.add(solutionContainer);
     }
 
-    private int[] doInsertion(int[] positions) {
+    private int[] doInsertion(int[] positions, Random random) {
 
-        Random random = new Random();
         int j1 = random.nextInt(positions.length);
         int j2 = random.nextInt(positions.length);
         while (j2 == j1) {
@@ -128,76 +133,111 @@ public class GAImplementation {
 
         int[] newPositions = new int[positions.length];
         System.arraycopy(positions, 0, newPositions, 0, i1);
-        System.arraycopy(positions, i1 + 1, newPositions, i1, i2 - i1);
-        newPositions[i2] = positions[i1];
+        System.arraycopy(positions, i1 + 1, newPositions, i1, i2 - i1 - 1);
+        newPositions[i2-1] = positions[i1];
         System.arraycopy(positions, i2, newPositions, i2, positions.length - i2);
 
         return newPositions;
     }
 
-    private List<Integer> doReversion(int[] positions) {
-        Random random = new Random();
-        int j1 = random.nextInt(positions.size());
-        int j2 = random.nextInt(positions.size());
+    private int[] doReversion(int[] positions, Random random) {
+        int j1 = random.nextInt(positions.length);
+        int j2 = random.nextInt(positions.length);
         int i1 = Math.min(j1, j2);
         int i2 = Math.max(j1, j2);
 
-        List<Integer> newPositions = IntStream.range(0, i1).mapToObj(i -> positions.get(i)).collect(Collectors.toList());
-        List<Integer> positionsToReverse = IntStream.range(i1, i2)
-                .mapToObj(i -> positions.get(i))
-                .collect(Collectors.toList());
-        Collections.reverse(positionsToReverse);
-        newPositions.addAll(positionsToReverse);
-        newPositions.addAll(IntStream.range(i2, positions.size()).mapToObj(i -> positions.get(i)).collect(Collectors.toList()));
+        int[] newPositions = new int[positions.length];
+        System.arraycopy(positions, 0, newPositions, 0, i1);
+        for (int i = 0; i < i2 - i1; i++) {
+            newPositions[i1 + i] = positions[i2 - i - 1];
+        }
+        System.arraycopy(positions, i2, newPositions, i2, positions.length - i2);
+
         return newPositions;
     }
 
-    private int[] doSwap(int[] positions) {
+    private int[] doSwap(int[] positions, Random random) {
         int[] newPositions = new int[positions.length];
         System.arraycopy(positions, 0, newPositions, 0, positions.length);
-        Random random = new Random();
-        Collections.swap(newPositions, random.nextInt(positions.size()), random.nextInt(positions.size()));
+        int i = random.nextInt(positions.length);
+        int j = random.nextInt(positions.length);
+        int temp = positions[j];
+        positions[j] = positions[i];
+        positions[i] = temp;
         return newPositions;
     }
 
-    private void permuationCrossOver(List<SolutionContainer> crossOverSolutions, int[] positions1, int[] positions2) {
+    void permuationCrossOver(List<SolutionContainer> crossOverSolutions, int[] positions1, int[] positions2, Random random) {
 
-        int nVar = positions1.size();
-        int c = new Random().nextInt(nVar - 1);
-        List<Integer> x11 = IntStream.range(0, c).mapToObj(i -> positions1.get(i)).collect(Collectors.toList());
-        List<Integer> x12 = IntStream.range(c, positions1.size()).mapToObj(i -> positions1.get(i)).collect(Collectors.toList());
+        int nVar = positions1.length;
+        int c = random.nextInt(nVar - 1);
 
-        List<Integer> x21 = IntStream.range(0, c).mapToObj(i -> positions2.get(i)).collect(Collectors.toList());
-        List<Integer> x22 = IntStream.range(c, positions2.size()).mapToObj(i -> positions2.get(i)).collect(Collectors.toList());
+        int[] x11 = new int[c];
+        System.arraycopy(positions1, 0, x11, 0, x11.length);
+        int[] x12 = new int[nVar - c];
+        System.arraycopy(positions1, c, x12, 0, x12.length);
 
-        Set<Integer> r1 = new HashSet<>(x11);
-        r1.retainAll(x22);
-        Set<Integer> r2 = new HashSet<>(x12);
-        r2.retainAll(x21);
+        int[] x21 = new int[c];
+        System.arraycopy(positions2, 0, x21, 0, x21.length);
+        int[] x22 = new int[nVar - c];
+        System.arraycopy(positions2, c, x22, 0, x22.length);
 
-        Iterator<Integer> r1Iterator = r1.iterator();
-        Iterator<Integer> r2Iterator = r2.iterator();
-        for (int i = 0; i < x11.size(); i++) {
-            if (r1.contains(x11.get(i))) {
-                x11.set(i, r2Iterator.next());
+        int[] r1 = new int[nVar];
+        int r1Index = 0;
+
+        int[] r2 = new int[nVar];
+        int r2Index = 0;
+
+        for (int i = 0; i < c; i++) {
+            for (int j = 0; j < nVar - c; j++) {
+                if (x11[i] == x22[j]) {
+                    r1[r1Index++] = x11[i];
+                    break;
+                }
+            }
+        }
+        for (int i = 0; i < c; i++) {
+            for (int j = 0; j < nVar - c; j++) {
+                if (x12[j] == x21[i]) {
+                    r2[r2Index++] = x12[j];
+                    break;
+                }
             }
         }
 
-        for (int i = 0; i < x21.size(); i++) {
-            if (r2.contains(x21.get(i))) {
-                x21.set(i, r1Iterator.next());
+        int r1Iterator = 0;
+        int r2Iterator = 0;
+
+        for (int i = 0; i < c; i++) {
+            for (int j = 0; j < r1Index; j++) {
+                if (r1[j] == x11[i]) {
+                    x11[i] = r2[r2Iterator++];
+                    break;
+                }
             }
         }
+
+        for (int i = 0; i < c; i++) {
+            for (int j = 0; j < r2Index; j++) {
+                if (r2[j] == x21[i]) {
+                    x21[i] = r1[r1Iterator++];
+                    break;
+                }
+            }
+        }
+
 
         SolutionContainer solutionContainer1 = new SolutionContainer();
-        solutionContainer1.positions.addAll(x11);
-        solutionContainer1.positions.addAll(x22);
+        solutionContainer1.positions = new int[nVar];
+        System.arraycopy(x11, 0, solutionContainer1.positions, 0, c);
+        System.arraycopy(x22, 0, solutionContainer1.positions, c, nVar - c);
+        crossOverSolutions.add(solutionContainer1);
 
         SolutionContainer solutionContainer2 = new SolutionContainer();
-        solutionContainer2.positions.addAll(x21);
-        solutionContainer2.positions.addAll(x12);
+        solutionContainer2.positions = new int[nVar];
+        System.arraycopy(x21, 0, solutionContainer2.positions, 0, c);
+        System.arraycopy(x12, 0, solutionContainer2.positions, c, nVar - c);
 
-        crossOverSolutions.add(solutionContainer1);
         crossOverSolutions.add(solutionContainer2);
     }
 

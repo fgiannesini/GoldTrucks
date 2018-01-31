@@ -10,7 +10,6 @@ public class SolutionContainer {
     Solution solution;
 
     public SolutionContainer() {
-        this.positions = new ArrayList<>();
         solution = new Solution();
     }
 }
