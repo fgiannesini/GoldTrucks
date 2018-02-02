@@ -1,6 +1,9 @@
 package geneticalgorithm;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -15,20 +18,16 @@ public class GAImplementation {
     int nc = 2 * Math.round(pc * nPop / 2);
     float pm = 0.8f;
     int nm = Math.round(pm * nPop);
+    int containerCount = 10;
 
     //Init
     Random random = new Random();
     List<SolutionContainer> solutionContainers = new ArrayList<>();
 
     for (int j = 0; j < nPop; j++) {
-      SolutionContainer solutionContainer = new SolutionContainer();
+      SolutionContainer solutionContainer = new SolutionContainer(containerCount, nVar);
       solutionContainer.positions = IntStream.range(0, nVar).toArray();
-      for (int i = 0; i < nVar; i++) {
-        int randomPosition = random.nextInt(nVar);
-        int temp = solutionContainer.positions[i];
-        solutionContainer.positions[i] = solutionContainer.positions[randomPosition];
-        solutionContainer.positions[randomPosition] = temp;
-      }
+      randomizePositions(random, solutionContainer.positions);
       computeBinPackingCost(solutionContainer, model);
       solutionContainers.add(solutionContainer);
     }
@@ -39,17 +38,17 @@ public class GAImplementation {
 
     SolutionContainer bestSol = solutionContainers.get(0);
 
-    List<Double> bestCost = new ArrayList<>(maxIt);
-
     for (int i = 0; i < maxIt; i++) {
 
       //CrossOver
+      double[] p = computeProbabilities(nPop, solutionContainers);
+
       List<SolutionContainer> crossOverSolutions = new ArrayList<>();
       for (int k = 0; k < nc / 2; k++) {
-        int i1 = random.nextInt(nPop);
+        int i1 = rouletteWheelSelection(random, p);
         SolutionContainer solution1 = solutionContainers.get(i1);
 
-        int i2 = random.nextInt(nPop);
+        int i2 = rouletteWheelSelection(random, p);
         SolutionContainer solution2 = solutionContainers.get(i2);
 
         permuationCrossOver(crossOverSolutions, solution1.positions, solution2.positions, random);
@@ -86,21 +85,52 @@ public class GAImplementation {
       // Update Best Solution Ever Found
       bestSol = solutionContainers.get(0);
 
-      // Update Best Cost Ever Found
-      bestCost.add(bestSol.cost);
-
-      System.out.println(
-        "Iteration " + i + " : Best Cost = " + bestSol.cost + " elements count = " + bestSol.solution.b.stream().flatMap(List::stream).count());
+      System.out.println("Iteration " + i + " : Best Cost = " + bestSol.cost);
     }
 
-    bestSol.solution.b.stream().map(aB -> aB.stream().mapToInt(j -> model.v[j]).sum())
-      .forEach(System.out::println);
+    for (int i = 0; i < bestSol.solution.bIndex; i++) {
+      System.out.println(bestSol.solution.viol[i]);
+    }
+  }
+
+  private void randomizePositions(Random random, int[] positions) {
+    for (int i = 0; i < positions.length; i++) {
+      int randomPosition = random.nextInt(positions.length);
+      int temp = positions[i];
+      positions[i] = positions[randomPosition];
+      positions[randomPosition] = temp;
+    }
+  }
+
+  private double[] computeProbabilities(int nPop, List<SolutionContainer> solutionContainers) {
+    double worstCost = solutionContainers.get(nPop - 1).cost;
+    double sumP = 0;
+    double[] p = new double[nPop];
+    for (int s = 0; s < nPop; s++) {
+      p[s] = Math.exp(-5 * solutionContainers.get(s).cost / worstCost);
+      sumP += p[s];
+    }
+    p[0] /= sumP;
+    for (int s = 1; s < nPop; s++) {
+      p[s] = p[s - 1] / sumP;
+    }
+    return p;
+  }
+
+  private int rouletteWheelSelection(Random random, double[] p) {
+    double r = random.nextDouble();
+    for (int s = 0; s < p.length; s++) {
+      if (p[s] > r) {
+        return s;
+      }
+    }
+    return 0;
   }
 
   void permutationMutate(List<SolutionContainer> mutationSolutions, int[] positions, Random random) {
 
     int mode = random.nextInt(3);
-    SolutionContainer solutionContainer = new SolutionContainer();
+    SolutionContainer solutionContainer = new SolutionContainer(10, positions.length);
     switch (mode) {
       case 0:
         //Swap
@@ -159,9 +189,8 @@ public class GAImplementation {
     System.arraycopy(positions, 0, newPositions, 0, positions.length);
     int i = random.nextInt(positions.length);
     int j = random.nextInt(positions.length);
-    int temp = positions[j];
-    positions[j] = positions[i];
-    positions[i] = temp;
+    newPositions[j] = positions[i];
+    newPositions[i] = positions[j];
     return newPositions;
   }
 
@@ -224,13 +253,13 @@ public class GAImplementation {
       }
     }
 
-    SolutionContainer solutionContainer1 = new SolutionContainer();
+    SolutionContainer solutionContainer1 = new SolutionContainer(10, positions1.length);
     solutionContainer1.positions = new int[nVar];
     System.arraycopy(x11, 0, solutionContainer1.positions, 0, c);
     System.arraycopy(x22, 0, solutionContainer1.positions, c, nVar - c);
     crossOverSolutions.add(solutionContainer1);
 
-    SolutionContainer solutionContainer2 = new SolutionContainer();
+    SolutionContainer solutionContainer2 = new SolutionContainer(10, positions2.length);
     solutionContainer2.positions = new int[nVar];
     System.arraycopy(x21, 0, solutionContainer2.positions, 0, c);
     System.arraycopy(x12, 0, solutionContainer2.positions, c, nVar - c);
@@ -259,39 +288,43 @@ public class GAImplementation {
     }
     to[model.n - 1] = model.n * 2 - 1;
 
-    List<List<Integer>> b = new ArrayList<>();
+    Solution solution = solutionContainer.solution;
+    solution.bIndex = 0;
+    solution.bPositions[solution.bIndex] = 0;
     for (int i = 0; i < model.n; i++) {
-      List<Integer> bi = new ArrayList<>();
-      for (int j = from[i]; j <= to[i]; j++) {
+      int fromValue = from[i];
+      int toValue = to[i];
+      if (fromValue > toValue || fromValue >= solutionContainer.positions.length) {
+        continue;
+      }
+      int currentPosition = solution.bPositions[solution.bIndex];
+      for (int j = fromValue; j <= toValue; j++) {
         if (j >= solutionContainer.positions.length) {
           continue;
         }
-        bi.add(solutionContainer.positions[j]);
+        solution.b[currentPosition++] = solutionContainer.positions[j];
       }
-      if (!bi.isEmpty()) {
-        b.add(bi);
-      }
+      solution.bPositions[++solution.bIndex] = currentPosition;
     }
 
-
-    double[] viol = b.stream()
-      .map(aB -> aB.stream().mapToInt(j -> model.v[j]).sum())
-      .mapToDouble(vi -> Math.max(((float)vi / (float)model.vMax) - 1, 0f))
-      .toArray();
-
-    solutionContainer.solution.b = b;
+    for (int i = 0; i < solution.bIndex; i++) {
+      solution.viol[i] = 0;
+      for (int j = solution.bPositions[i]; j < solution.bPositions[i + 1]; j++) {
+        solution.viol[i] += model.v[j];
+      }
+      solution.viol[i] = Math.max((solution.viol[i] / (float)model.vMax) - 1, 0d);
+    }
 
     double violMean = 0;
-    for (double aViol : viol) {
+    for (double aViol : solution.viol) {
       violMean += aViol;
     }
-    violMean/=viol.length;
+    violMean /= solution.bIndex;
 
-    solutionContainer.solution.meanViol = violMean;
+    solution.meanViol = violMean;
 
-    solutionContainer.solution.nBin = b.size();
-    solutionContainer.solution.viol = viol;
+    solution.nBin = solution.bIndex;
 
-    solutionContainer.cost = b.size() + 10 * model.n * solutionContainer.solution.meanViol;
+    solutionContainer.cost = solution.nBin + 10 * model.n * solution.meanViol;
   }
 }

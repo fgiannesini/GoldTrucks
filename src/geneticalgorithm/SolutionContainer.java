@@ -9,7 +9,7 @@ public class SolutionContainer {
     double cost;
     Solution solution;
 
-    public SolutionContainer() {
-        solution = new Solution();
+    public SolutionContainer(int containerCount, int elementCount) {
+        solution = new Solution(containerCount, elementCount);
     }
 }
