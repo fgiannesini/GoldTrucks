@@ -18,7 +18,7 @@ public class GAImplementation {
     int nc = 2 * Math.round(pc * nPop / 2);
     float pm = 0.8f;
     int nm = Math.round(pm * nPop);
-    int containerCount = 10;
+    int containerCount = model.n;
 
     //Init
     Random random = new Random();
@@ -89,7 +89,11 @@ public class GAImplementation {
     }
 
     for (int i = 0; i < bestSol.solution.bIndex; i++) {
-      System.out.println(bestSol.solution.viol[i]);
+      int resultSum = 0;
+      for (int j = bestSol.solution.bPositions[i]; j < bestSol.solution.bPositions[i + 1]; j++) {
+        resultSum  += model.v[j];
+      }
+      System.out.println(resultSum);
     }
   }
 
@@ -130,7 +134,7 @@ public class GAImplementation {
   void permutationMutate(List<SolutionContainer> mutationSolutions, int[] positions, Random random) {
 
     int mode = random.nextInt(3);
-    SolutionContainer solutionContainer = new SolutionContainer(10, positions.length);
+    SolutionContainer solutionContainer = new SolutionContainer(100, positions.length);
     switch (mode) {
       case 0:
         //Swap
@@ -253,13 +257,13 @@ public class GAImplementation {
       }
     }
 
-    SolutionContainer solutionContainer1 = new SolutionContainer(10, positions1.length);
+    SolutionContainer solutionContainer1 = new SolutionContainer(100, positions1.length);
     solutionContainer1.positions = new int[nVar];
     System.arraycopy(x11, 0, solutionContainer1.positions, 0, c);
     System.arraycopy(x22, 0, solutionContainer1.positions, c, nVar - c);
     crossOverSolutions.add(solutionContainer1);
 
-    SolutionContainer solutionContainer2 = new SolutionContainer(10, positions2.length);
+    SolutionContainer solutionContainer2 = new SolutionContainer(100, positions2.length);
     solutionContainer2.positions = new int[nVar];
     System.arraycopy(x21, 0, solutionContainer2.positions, 0, c);
     System.arraycopy(x12, 0, solutionContainer2.positions, c, nVar - c);
@@ -316,8 +320,8 @@ public class GAImplementation {
     }
 
     double violMean = 0;
-    for (double aViol : solution.viol) {
-      violMean += aViol;
+    for (int i = 0; i < solution.bIndex; i++) {
+      violMean += solution.viol[i];
     }
     violMean /= solution.bIndex;
 

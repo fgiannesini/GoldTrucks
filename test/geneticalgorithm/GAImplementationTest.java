@@ -29,8 +29,9 @@ public class GAImplementationTest {
     SolutionContainer solutionContainer = new SolutionContainer(5, 9);
     solutionContainer.positions = new int[]{2, 4, 5, 1, 0, 7, 8, 3, 6};
     new GAImplementation().computeBinPackingCost(solutionContainer, model);
-    Arrays.sort(solutionContainer.solution.b);
-    Assert.assertArrayEquals(IntStream.range(0, 5).toArray(), solutionContainer.solution.b);
+    int solutionCount = solutionContainer.solution.nBin;
+    int positionLength = solutionContainer.solution.bPositions[solutionCount];
+    Assert.assertArrayEquals(IntStream.range(0, 5).toArray(), Arrays.stream(solutionContainer.solution.b).limit(positionLength).sorted().toArray());
   }
 
   @Test
@@ -42,8 +43,9 @@ public class GAImplementationTest {
     SolutionContainer solutionContainer = new SolutionContainer(30, 59);
     solutionContainer.positions = new int[]{37, 48, 56, 16, 33, 0, 7, 8, 58, 42, 30, 23, 4, 14, 44, 17, 45, 57, 20, 36, 50, 43, 15, 41, 40, 25, 53, 2, 47, 27, 11, 49, 52, 19, 38, 10, 39, 32, 51, 28, 26, 54, 46, 31, 3, 22, 13, 34, 5, 29, 55, 12, 6, 9, 21, 18, 1, 35, 24};
     new GAImplementation().computeBinPackingCost(solutionContainer, model);
-    Arrays.sort(solutionContainer.solution.b);
-    Assert.assertArrayEquals(IntStream.range(0, 30).toArray(), solutionContainer.solution.b);
+    int solutionCount = solutionContainer.solution.nBin;
+    int positionLength = solutionContainer.solution.bPositions[solutionCount];
+    Assert.assertArrayEquals(IntStream.range(0, 30).toArray(), Arrays.stream(solutionContainer.solution.b).limit(positionLength).sorted().toArray());
   }
 
   @Test
