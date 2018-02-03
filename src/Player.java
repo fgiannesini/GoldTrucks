@@ -39,7 +39,7 @@ class Player {
     int ite = 0;
     while (true) {
 
-      //CrossOver
+      //CrossOverComputer
       List<Container> crossOverSolutions = new ArrayList<>(crossOverPopulationCount);
       for (int k = 0; k < crossOverPopulationCount / 2; k++) {
         int i1 = random.nextInt(populationCount);
@@ -55,7 +55,7 @@ class Player {
       }
       crossOverSolutions.forEach(c -> computeCost(c, meanWeight));
 
-      //Mutation
+      //MutationComputer
       List<Container> mutationSolutions = new ArrayList<>(mutationPopulationCount);
       for (int k = 0; k < mutationPopulationCount; k++) {
         //Select Parent Index
@@ -64,7 +64,7 @@ class Player {
         //Select Parent
         Container parent = containerList.get(parentIndex);
 
-        //Apply Mutation
+        //Apply MutationComputer
         permutationMutate(mutationSolutions, parent, random);
       }
 

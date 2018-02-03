@@ -1,7 +1,5 @@
 package geneticalgorithm;
 
-import java.util.List;
-
 public class Solution {
 
   int nBin;
