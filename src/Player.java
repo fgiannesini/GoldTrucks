@@ -223,7 +223,7 @@ class Player {
 
       solution.nBin = solution.bIndex;
 
-      solutionContainer.cost = maxWeight - minWeight + 10 * boxes.boxCount * solution.meanViol + Math.abs(TRUCK_COUNT - solution.nBin) * 100;
+      solutionContainer.cost = maxWeight - minWeight + boxes.boxCount * solution.meanViol + Math.abs(TRUCK_COUNT - solution.nBin) * 1000;
     }
   }
 
