@@ -32,7 +32,7 @@ public class CrossOverComputer {
         r2 = new int[nVar];
     }
 
-    void computeCrossOver() {
+    public void computeCrossOver() {
         computeProbabilities();
 
         for (int k = beginIndex; k < endIndex ; k+=2) {

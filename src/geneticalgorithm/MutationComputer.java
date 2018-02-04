@@ -18,7 +18,7 @@ public class MutationComputer {
         this.nPop = nPop;
     }
 
-    void mutate() {
+    public void mutate() {
 
         for (int k = beginIndex; k < endIndex; k++) {
             //Select Parent Index

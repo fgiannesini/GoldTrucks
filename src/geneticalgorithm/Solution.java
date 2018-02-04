@@ -4,8 +4,8 @@ public class Solution {
 
   int nBin;
   int[] b;
-  int[] bPositions;
-  int bIndex;
+  public int[] bPositions;
+  public int bIndex;
   double[] viol;
   double meanViol;
 

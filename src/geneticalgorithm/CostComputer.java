@@ -54,7 +54,8 @@ public class CostComputer {
         for (int i = 0; i < solution.bIndex; i++) {
             solution.viol[i] = 0;
             for (int j = solution.bPositions[i]; j < solution.bPositions[i + 1]; j++) {
-                solution.viol[i] += model.v[j];
+                int position = solution.b[j];
+                solution.viol[i] += model.v[position];
             }
             solution.viol[i] = Math.max((solution.viol[i] / (float) model.vMax) - 1, 0d);
         }
