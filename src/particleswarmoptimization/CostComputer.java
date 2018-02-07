@@ -21,7 +21,7 @@ public class CostComputer {
 
         int sepIndex = 0;
         for (int i = 0; i < solutionContainer.positions.length; i++) {
-            if (solutionContainer.positions[i] >= model.n) {
+            if (solutionContainer.positions[i] >= 0.5) {
                 sep[sepIndex++] = i;
             }
         }

@@ -26,6 +26,7 @@ public class PSOImplementation {
     Random random = new Random();
     SolutionContainer[] solutionContainers = new SolutionContainer[nPop];
     CostComputer costComputer = new CostComputer(model);
+    Mutator mutator = new Mutator(random);
 
     SolutionContainer globalBest = new SolutionContainer(containerCount, nVar);
     globalBest.cost = Double.MAX_VALUE;
@@ -54,11 +55,50 @@ public class PSOImplementation {
         double[] velocities = solutionContainer.velocities;
         for (int k = 0; k < velocities.length; k++) {
           //Update velocities
-          velocities[k] = w * velocities[k]
-                          + c1 * random.nextDouble() * (solutionContainer.bestPositions[k] - solutionContainer.positions[k])
-                          + c2 * random.nextDouble() * (globalBest.positions[k] - solutionContainer.positions[k]);
+          double velocity = w * velocities[k]
+                            + c1 * random.nextDouble() * (solutionContainer.bestPositions[k] - solutionContainer.positions[k])
+                            + c2 * random.nextDouble() * (globalBest.positions[k] - solutionContainer.positions[k]);
 
           //Apply Velocity Limits
+          velocity = Math.max(velocity, velMin);
+          velocity = Math.min(velocity, velMax);
+
+          //Update Position
+          double position = solutionContainer.positions[k];
+          position += velocity;
+
+          //Velocity Mirror Effect
+          if (position < varMin || position > varMax) {
+            velocity *= -1;
+          }
+
+          //Apply Position Limits
+          position = Math.max(position, varMin);
+          position = Math.min(position, varMax);
+
+          solutionContainer.positions[k] = position;
+          velocities[k] = velocity;
+        }
+
+        //Evaluation
+        costComputer.computeBinPackingCost(solutionContainer);
+
+        //Perform Mutation
+        for (int k = 0; k < particuleMutationCount; k++) {
+          SolutionContainer mutatedSolutionContainer = new SolutionContainer(containerCount, nVar);
+          mutatedSolutionContainer.solution = (Solution)solutionContainer.solution.clone();
+          mutatedSolutionContainer.velocities = solutionContainer.velocities;
+
+          mutatedSolutionContainer.bestSolution = solutionContainer.bestSolution;
+          mutatedSolutionContainer.bestCost = solutionContainer.bestCost;
+          mutatedSolutionContainer.bestPositions = solutionContainer.bestPositions;
+
+          mutatedSolutionContainer.positions = mutator.mutate(solutionContainer.positions);
+          costComputer.computeBinPackingCost(solutionContainer);
+
+          if (mutatedSolutionContainer.cost > solutionContainer.cost) {
+            solutionContainers[j] = mutatedSolutionContainer;
+          }
         }
       }
     }
