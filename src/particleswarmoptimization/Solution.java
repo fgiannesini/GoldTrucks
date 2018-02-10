@@ -3,7 +3,7 @@ package particleswarmoptimization;
 public class Solution implements Cloneable{
 
   int nBin;
-  double[] b;
+  int[] b;
   public int[] bPositions;
   public int bIndex;
   double[] viol;
@@ -11,7 +11,7 @@ public class Solution implements Cloneable{
 
   public Solution(int containerCount, int elementCount) {
     bPositions = new int[containerCount * 2];
-    b = new double[elementCount];
+    b = new int[elementCount];
     viol = new double[containerCount];
   }
 

@@ -1,6 +1,7 @@
 package particleswarmoptimization;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class CostComputer {
 
@@ -8,20 +9,29 @@ public class CostComputer {
     private int[] sep;
     private int[] from;
     private int[] to;
+    private Position[] positions;
 
     public CostComputer(Model model) {
         this.model = model;
         sep = new int[this.model.n - 1];
         from = new int[model.n];
         to = new int[model.n];
+        positions = new Position[model.n * 2 - 1];
+        for (int i = 0; i < positions.length; i++) {
+            positions[i] = new Position();
+        }
     }
 
     public void computeBinPackingCost(SolutionContainer solutionContainer) {
-        Arrays.sort(solutionContainer.positions);
+        for (int i = 0; i < solutionContainer.positions.length; i++) {
+            positions[i].index = i;
+            positions[i].value = solutionContainer.positions[i];
+        }
+        Arrays.sort(positions, Comparator.comparingDouble(p -> p.value));
 
         int sepIndex = 0;
         for (int i = 0; i < solutionContainer.positions.length; i++) {
-            if (solutionContainer.positions[i] >= 0.5) {
+            if (positions[i].index >= model.n) {
                 sep[sepIndex++] = i;
             }
         }
@@ -50,7 +60,7 @@ public class CostComputer {
                 if (j >= solutionContainer.positions.length) {
                     continue;
                 }
-                solution.b[currentPosition++] = solutionContainer.positions[j];
+                solution.b[currentPosition++] = positions[j].index;
             }
             solution.bPositions[++solution.bIndex] = currentPosition;
         }
@@ -58,8 +68,8 @@ public class CostComputer {
         for (int i = 0; i < solution.bIndex; i++) {
             solution.viol[i] = 0;
             for (int j = solution.bPositions[i]; j < solution.bPositions[i + 1]; j++) {
-                double position = solution.b[j];
-                solution.viol[i] += model.v[(int)position];
+                int position = solution.b[j];
+                solution.viol[i] += model.v[position];
             }
             solution.viol[i] = Math.max((solution.viol[i] / (float) model.vMax) - 1, 0d);
         }

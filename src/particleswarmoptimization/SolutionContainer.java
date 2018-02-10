@@ -14,4 +14,9 @@ public class SolutionContainer {
     public SolutionContainer(int containerCount, int elementCount) {
         solution = new Solution(containerCount, elementCount);
     }
+
+    public SolutionContainer(SolutionContainer solutionContainer) throws CloneNotSupportedException {
+        solution = (Solution) solutionContainer.solution.clone();
+        velocities = solutionContainer.velocities;
+    }
 }
