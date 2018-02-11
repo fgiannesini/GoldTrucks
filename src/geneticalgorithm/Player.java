@@ -1,3 +1,5 @@
+package geneticalgorithm;
+
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -72,7 +74,7 @@ class Player {
 
       // Update Best Solution Ever Found
       bestSol = solutionContainers[0];
-      
+
       long computationTime = System.nanoTime() - startTime;
 
       if (ite++ % 1000 == 0) {

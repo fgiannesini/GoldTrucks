@@ -66,7 +66,7 @@ public class CostComputer {
         }
 
         for (int i = 0; i < solution.bIndex; i++) {
-            solution.viol[i] = 0;
+            solution.viol[i] = 0.0;
             for (int j = solution.bPositions[i]; j < solution.bPositions[i + 1]; j++) {
                 int position = solution.b[j];
                 solution.viol[i] += model.v[position];

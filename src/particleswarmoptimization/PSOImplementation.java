@@ -99,7 +99,6 @@ public class PSOImplementation {
                     globalBest.solution = (Solution) currentSolutionContainer.solution.clone();
                 }
 
-
             }
 
             mutator.performMutation(globalBestMutation, globalBest);
@@ -116,10 +115,12 @@ public class PSOImplementation {
         for (int i = 0; i < globalBest.solution.bIndex; i++) {
             int resultSum = 0;
             for (int j = globalBest.solution.bPositions[i]; j < globalBest.solution.bPositions[i + 1]; j++) {
-                resultSum += model.v[j];
+                int position = globalBest.solution.b[j];
+                resultSum += model.v[position];
             }
-            System.out.println(resultSum);
+            System.out.print(resultSum + " ");
         }
+        System.out.println();
     }
 
 
