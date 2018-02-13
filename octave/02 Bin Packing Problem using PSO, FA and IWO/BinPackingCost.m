@@ -11,11 +11,11 @@
 % Contact Info: sm.kalami@gmail.com, info@yarpiz.com
 %
 
-function [z, sol] = BinPackingCost(x, model)
+function [z, sol] = BinPackingCost(x, boxes)
 
-    n = model.n;
-    v = model.v;
-    Vmax = model.Vmax;
+    n = boxes.n;
+    v = boxes.v;
+    Vmax = boxes.Vmax;
 
     [~, q]=sort(x);
     

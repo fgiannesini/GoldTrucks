@@ -11,74 +11,120 @@ class Player {
     static int TRUCK_COUNT = 100;
     private static int TRUCK_VOLUME = 100;
 
-    public static void main(String args[]) {
+    public static void main(String args[]) throws CloneNotSupportedException {
         new Player().launch(new Scanner(System.in));
     }
 
-    void launch(Scanner in) {
+    void launch(Scanner in) throws CloneNotSupportedException {
 
         long startTime = System.nanoTime();
 
         Boxes boxes = createBoxes(in);
 
-        int nVar = 2 * boxes.boxCount - 1;
-        int nPop = 40;
-        float pc = 0.4f;
-        int nc = 2 * Math.round(pc * nPop / 2);
-        float pm = 0.8f;
-        int nm = Math.round(pm * nPop);
         int containerCount = TRUCK_COUNT;
+        int nVar = 2 * boxes.boxCount - 1;
+        int nPop = 50;
+        int particuleMutationCount = 2;
+        int globalBestMutation = 5;
+
+        int varMin = 0;
+        int varMax = 1;
+        int w = 1;
+        double wdamp = 0.99;
+        double c1 = 1.5;
+        double c2 = 2.0;
+        double velMax = 0.1 * (varMax - varMin);
+        double velMin = -velMax;
 
         //Init
         Random random = new Random();
-        SolutionContainer[] solutionContainers = new SolutionContainer[nPop + nc + nm];
+        SolutionContainer[] solutionContainers = new SolutionContainer[nPop];
         CostComputer costComputer = new CostComputer(boxes);
+        Mutator mutator = new Mutator(random, costComputer);
+
+        SolutionContainer globalBest = new SolutionContainer(nVar);
+        globalBest.cost = Double.MAX_VALUE;
 
         for (int j = 0; j < nPop; j++) {
-            SolutionContainer solutionContainer = new SolutionContainer(containerCount, nVar);
-            solutionContainer.positions = IntStream.range(0, nVar).toArray();
-            randomizePositions(random, solutionContainer.positions);
+            SolutionContainer solutionContainer = new SolutionContainer(nVar);
+            solutionContainer.positions = IntStream.range(0, nVar).mapToDouble(i -> random.nextDouble()).toArray();
+            solutionContainer.velocities = new double[nVar];
             costComputer.computeBinPackingCost(solutionContainer);
+            solutionContainer.bestCost = solutionContainer.cost;
+            solutionContainer.bestPositions = solutionContainer.positions.clone();
+            solutionContainer.bestSolution = (Solution) solutionContainer.solution.clone();
+            if (solutionContainer.cost < globalBest.cost) {
+                globalBest.cost = solutionContainer.cost;
+                globalBest.positions = solutionContainer.positions.clone();
+                globalBest.solution = (Solution) solutionContainer.solution.clone();
+            }
             solutionContainers[j] = solutionContainer;
         }
-
-        for (int j = nPop; j < nPop + nc + nm; j++) {
-            SolutionContainer solutionContainer = new SolutionContainer(containerCount, nVar);
-            solutionContainer.positions = new int[nVar];
-            solutionContainers[j] = solutionContainer;
-        }
-
-        Comparator<SolutionContainer> solutionContainerComparator = Comparator.comparingDouble(s -> s.cost);
-
-        Arrays.sort(solutionContainers, 0, nPop, solutionContainerComparator);
-
-        CrossOverComputer crossOverComputer = new CrossOverComputer(solutionContainers, random, nPop, nPop + nc, nPop);
-        MutationComputer mutationComputer = new MutationComputer(solutionContainers, random, nPop + nc, nPop + nc + nm, nPop);
-
-        SolutionContainer bestSol;
 
         int ite = 0;
         while (true) {
 
-            //CrossOverComputer
-            crossOverComputer.computeCrossOver();
+            for (int j = 0; j < nPop; j++) {
+                SolutionContainer solutionContainer = solutionContainers[j];
+                double[] velocities = solutionContainer.velocities;
+                for (int k = 0; k < velocities.length; k++) {
+                    //Update velocities
+                    double velocity = w * velocities[k]
+                            + c1 * random.nextDouble() * (solutionContainer.bestPositions[k] - solutionContainer.positions[k])
+                            + c2 * random.nextDouble() * (globalBest.positions[k] - solutionContainer.positions[k]);
 
-            //MutationComputer
-            mutationComputer.mutate();
+                    //Apply Velocity Limits
+                    velocity = Math.max(velocity, velMin);
+                    velocity = Math.min(velocity, velMax);
 
-            // Sort Population
-            for (int scIndex = nPop; scIndex < nPop + nc + nm; scIndex++) {
-                costComputer.computeBinPackingCost(solutionContainers[scIndex]);
+                    //Update Position
+                    double position = solutionContainer.positions[k];
+                    position += velocity;
+
+                    //Velocity Mirror Effect
+                    if (position < varMin || position > varMax) {
+                        velocity *= -1;
+                    }
+
+                    //Apply Position Limits
+                    position = Math.max(position, varMin);
+                    position = Math.min(position, varMax);
+
+                    solutionContainer.positions[k] = position;
+                    velocities[k] = velocity;
+                }
+
+                //Evaluation
+                costComputer.computeBinPackingCost(solutionContainer);
+
+                //Perform Mutation
+                mutator.performMutation(particuleMutationCount, solutionContainer);
+
+                //Update Personal Best
+                SolutionContainer currentSolutionContainer = solutionContainers[j];
+                if (currentSolutionContainer.cost < currentSolutionContainer.bestCost) {
+                    currentSolutionContainer.bestCost = currentSolutionContainer.cost;
+                    System.arraycopy(currentSolutionContainer.positions, 0, currentSolutionContainer.bestPositions, 0, nVar);
+                    currentSolutionContainer.bestSolution = (Solution) currentSolutionContainer.solution.clone();
+                }
+
+                //Update global best
+                if (currentSolutionContainer.cost < globalBest.cost) {
+                    globalBest.cost = currentSolutionContainer.cost;
+                    System.arraycopy(currentSolutionContainer.positions, 0, globalBest.positions, 0, nVar);
+                    globalBest.solution = (Solution) currentSolutionContainer.solution.clone();
+                }
+
             }
-            Arrays.sort(solutionContainers, solutionContainerComparator);
 
-            // Update Best Solution Ever Found
-            bestSol = solutionContainers[0];
+            mutator.performMutation(globalBestMutation, globalBest);
+
+            w *= wdamp;
 
             long computationTime = System.nanoTime() - startTime;
 
             if (ite++ % 1000 == 0) {
-                System.err.println("Iteration " + ite++ + ": ComputationTime = " + computationTime / 1_000_000d + " ms Best Cost = " + bestSol.cost);
+                System.err.println("Iteration " + ite++ + ": ComputationTime = " + computationTime / 1_000_000d + " ms Best Cost = " + globalBest.cost);
             }
 
             if (computationTime > (COMPUTATION_TIME - 1) * 1_000_000_000) {
@@ -87,18 +133,18 @@ class Player {
         }
 
         int[] truckByBoxIndex = new int[boxes.boxCount];
-        double[] truckWeights = new double[bestSol.solution.bIndex];
-        double[] truckVolumes = new double[bestSol.solution.bIndex];
-        for (int i = 0; i < bestSol.solution.bIndex; i++) {
-            for (int j = bestSol.solution.bPositions[i]; j < bestSol.solution.bPositions[i + 1]; j++) {
-                int position = bestSol.solution.b[j];
+        double[] truckWeights = new double[globalBest.solution.bIndex];
+        double[] truckVolumes = new double[globalBest.solution.bIndex];
+        for (int i = 0; i < globalBest.solution.bIndex; i++) {
+            for (int j = globalBest.solution.bPositions[i]; j < globalBest.solution.bPositions[i + 1]; j++) {
+                int position = globalBest.solution.b[j];
                 truckByBoxIndex[position] = i;
                 truckVolumes[i] += boxes.volumes[position];
                 truckWeights[i] += boxes.weights[position];
             }
         }
 
-        System.err.println("Trucks count : " + bestSol.solution.bIndex);
+        System.err.println("Trucks count : " + globalBest.solution.bIndex);
         System.err.println("truck Volumes > 100" + Arrays.stream(truckVolumes).filter(v -> v >= 100).mapToObj(String::valueOf).collect(Collectors.joining(" ")));
         DoubleSummaryStatistics summaryStatistics = Arrays.stream(truckWeights).summaryStatistics();
         System.err.println("Max Weight : " + summaryStatistics.getMax());
@@ -121,15 +167,6 @@ class Player {
         return boxes;
     }
 
-    private void randomizePositions(Random random, int[] positions) {
-        for (int i = 0; i < positions.length; i++) {
-            int randomPosition = random.nextInt(positions.length);
-            int temp = positions[i];
-            positions[i] = positions[randomPosition];
-            positions[randomPosition] = temp;
-        }
-    }
-
     public static class Boxes {
 
         double[] weights;
@@ -149,24 +186,35 @@ class Player {
 
     }
 
-    static class CostComputer {
+    public static class CostComputer {
 
         private Boxes boxes;
         private int[] sep;
         private int[] from;
         private int[] to;
+        private Position[] positions;
 
         public CostComputer(Boxes boxes) {
             this.boxes = boxes;
             sep = new int[this.boxes.boxCount - 1];
             from = new int[boxes.boxCount];
             to = new int[boxes.boxCount];
+            positions = new Position[boxes.boxCount * 2 - 1];
+            for (int i = 0; i < positions.length; i++) {
+                positions[i] = new Position();
+            }
         }
 
         public void computeBinPackingCost(SolutionContainer solutionContainer) {
+            for (int i = 0; i < solutionContainer.positions.length; i++) {
+                positions[i].index = i;
+                positions[i].value = solutionContainer.positions[i];
+            }
+            Arrays.sort(positions, Comparator.comparingDouble(p -> p.value));
+
             int sepIndex = 0;
             for (int i = 0; i < solutionContainer.positions.length; i++) {
-                if (solutionContainer.positions[i] >= boxes.boxCount) {
+                if (positions[i].index >= boxes.boxCount) {
                     sep[sepIndex++] = i;
                 }
             }
@@ -195,7 +243,7 @@ class Player {
                     if (j >= solutionContainer.positions.length) {
                         continue;
                     }
-                    solution.b[currentPosition++] = solutionContainer.positions[j];
+                    solution.b[currentPosition++] = positions[j].index;
                 }
                 solution.bPositions[++solution.bIndex] = currentPosition;
             }
@@ -229,224 +277,55 @@ class Player {
         }
     }
 
-    public class CrossOverComputer {
+    public static class Mutator {
         private final Random random;
-        private final int beginIndex;
-        private final int endIndex;
-        private SolutionContainer[] solutionContainers;
-        private int nPop;
-        private double[] probabilities;
-        private int[] x11;
-        private int[] x12;
-        private int[] x21;
-        private int[] x22;
-        private int[] r1;
-        private int[] r2;
+        private final CostComputer costComputer;
 
-        public CrossOverComputer(SolutionContainer[] solutionContainers, Random random, int beginIndex, int endIndex, int nPop) {
-            this.solutionContainers = solutionContainers;
+        public Mutator(Random random, CostComputer costComputer) {
             this.random = random;
-            this.beginIndex = beginIndex;
-            this.endIndex = endIndex;
-            this.nPop = nPop;
-            probabilities = new double[nPop];
-            int nVar = solutionContainers[0].positions.length;
-            x11 = new int[nVar];
-            x12 = new int[nVar];
-            x21 = new int[nVar];
-            x22 = new int[nVar];
-            r1 = new int[nVar];
-            r2 = new int[nVar];
+            this.costComputer = costComputer;
         }
 
-        public void computeCrossOver() {
-            computeProbabilities();
-
-            for (int k = beginIndex; k < endIndex; k += 2) {
-                int i1 = rouletteWheelSelection();
-                SolutionContainer solution1 = solutionContainers[i1];
-
-                int i2 = rouletteWheelSelection();
-                SolutionContainer solution2 = solutionContainers[i2];
-
-                permutationCrossOver(solution1.positions, solution2.positions, k);
+        private double[] mutatePositions(double[] positions) {
+            int n = positions.length;
+            double[] newPositions = Arrays.copyOf(positions, n);
+            int i = random.nextInt(n);
+            int j = random.nextInt(n);
+            while (i == j) {
+                j = random.nextInt(n);
             }
+            double temp = newPositions[i];
+            newPositions[i] = newPositions[j];
+            newPositions[j] = temp;
+            return newPositions;
         }
 
-        private void computeProbabilities() {
-            double worstCost = solutionContainers[nPop - 1].cost;
-            double sumP = 0;
-            for (int s = 0; s < nPop; s++) {
-                probabilities[s] = Math.exp(-5 * solutionContainers[s].cost / worstCost);
-                sumP += probabilities[s];
-            }
-            probabilities[0] /= sumP;
-            for (int s = 1; s < nPop; s++) {
-                probabilities[s] = probabilities[s - 1] + probabilities[s] / sumP;
-            }
-        }
-
-        private int rouletteWheelSelection() {
-            double r = random.nextDouble();
-            for (int s = 0; s < probabilities.length; s++) {
-                if (probabilities[s] > r) {
-                    return s;
-                }
-            }
-            return 0;
-        }
-
-        void permutationCrossOver(int[] positions1, int[] positions2, int solutionIndex) {
-
-            int nVar = positions1.length;
-            int c = random.nextInt(nVar - 1);
-
-            System.arraycopy(positions1, 0, x11, 0, c);
-            System.arraycopy(positions1, c, x12, 0, nVar - c);
-
-            System.arraycopy(positions2, 0, x21, 0, c);
-            System.arraycopy(positions2, c, x22, 0, nVar - c);
-
-            int r1Index = 0;
-            int r2Index = 0;
-
-            for (int i = 0; i < c; i++) {
-                for (int j = 0; j < nVar - c; j++) {
-                    if (x11[i] == x22[j]) {
-                        r1[r1Index++] = x11[i];
-                        break;
-                    }
-                }
-            }
-            for (int i = 0; i < c; i++) {
-                for (int j = 0; j < nVar - c; j++) {
-                    if (x12[j] == x21[i]) {
-                        r2[r2Index++] = x12[j];
-                        break;
-                    }
+        public void performMutation(int mutationCount, SolutionContainer solutionContainer) throws CloneNotSupportedException {
+            SolutionContainer bestSolutionContainer = solutionContainer;
+            for (int k = 0; k < mutationCount; k++) {
+                SolutionContainer mutatedSolutionContainer = new SolutionContainer(solutionContainer);
+                mutatedSolutionContainer.positions = mutatePositions(solutionContainer.positions);
+                costComputer.computeBinPackingCost(mutatedSolutionContainer);
+                if (mutatedSolutionContainer.cost < bestSolutionContainer.cost) {
+                    bestSolutionContainer = mutatedSolutionContainer;
                 }
             }
 
-            int r1Iterator = 0;
-            int r2Iterator = 0;
-
-            for (int i = 0; i < c; i++) {
-                for (int j = 0; j < r1Index; j++) {
-                    if (r1[j] == x11[i]) {
-                        x11[i] = r2[r2Iterator++];
-                        break;
-                    }
-                }
+            if (solutionContainer.equals(bestSolutionContainer)) {
+                return;
             }
-
-            for (int i = 0; i < c; i++) {
-                for (int j = 0; j < r2Index; j++) {
-                    if (r2[j] == x21[i]) {
-                        x21[i] = r1[r1Iterator++];
-                        break;
-                    }
-                }
-            }
-
-            SolutionContainer solutionContainer1 = solutionContainers[solutionIndex];
-            System.arraycopy(x11, 0, solutionContainer1.positions, 0, c);
-            System.arraycopy(x22, 0, solutionContainer1.positions, c, nVar - c);
-
-            SolutionContainer solutionContainer2 = solutionContainers[solutionIndex + 1];
-            System.arraycopy(x21, 0, solutionContainer2.positions, 0, c);
-            System.arraycopy(x12, 0, solutionContainer2.positions, c, nVar - c);
+            solutionContainer.cost = bestSolutionContainer.cost;
+            solutionContainer.positions = bestSolutionContainer.positions;
+            solutionContainer.solution = bestSolutionContainer.solution;
         }
     }
 
-    public class MutationComputer {
-
-        private final Random random;
-        private final int beginIndex;
-        private final int endIndex;
-        private SolutionContainer[] solutionContainers;
-        private int nPop;
-
-        public MutationComputer(SolutionContainer[] solutionContainers, Random random, int beginIndex, int endIndex, int nPop) {
-            this.solutionContainers = solutionContainers;
-            this.random = random;
-            this.beginIndex = beginIndex;
-            this.endIndex = endIndex;
-            this.nPop = nPop;
-        }
-
-        public void mutate() {
-
-            for (int k = beginIndex; k < endIndex; k++) {
-                //Select Parent Index
-                int parentIndex = random.nextInt(nPop);
-
-                //Select Parent
-                SolutionContainer parent = solutionContainers[parentIndex];
-
-                //Apply MutationComputer
-                permutationMutate(parent.positions, solutionContainers[k].positions);
-            }
-        }
-
-        private void permutationMutate(int[] positions, int[] positionsToMutate) {
-
-            int mode = random.nextInt(3);
-            switch (mode) {
-                case 0:
-                    //Swap
-                    doSwap(positions, positionsToMutate);
-                    break;
-                case 1:
-                    // Reversion
-                    doReversion(positions, positionsToMutate);
-                    break;
-                case 2:
-                    // Insertion
-                    doInsertion(positions, positionsToMutate);
-                    break;
-                default:
-            }
-        }
-
-        private void doInsertion(int[] positions, int[] mutatedPositions) {
-
-            int j1 = random.nextInt(positions.length);
-            int j2 = random.nextInt(positions.length);
-            while (j2 == j1) {
-                j2 = random.nextInt(positions.length);
-            }
-            int i1 = Math.min(j1, j2);
-            int i2 = Math.max(j1, j2);
-
-            System.arraycopy(positions, 0, mutatedPositions, 0, i1);
-            System.arraycopy(positions, i1 + 1, mutatedPositions, i1, i2 - i1 - 1);
-            mutatedPositions[i2 - 1] = positions[i1];
-            System.arraycopy(positions, i2, mutatedPositions, i2, positions.length - i2);
-        }
-
-        private void doReversion(int[] positions, int[] mutatedPositions) {
-            int j1 = random.nextInt(positions.length);
-            int j2 = random.nextInt(positions.length);
-            int i1 = Math.min(j1, j2);
-            int i2 = Math.max(j1, j2);
-
-            System.arraycopy(positions, 0, mutatedPositions, 0, i1);
-            for (int i = 0; i < i2 - i1; i++) {
-                mutatedPositions[i1 + i] = positions[i2 - i - 1];
-            }
-            System.arraycopy(positions, i2, mutatedPositions, i2, positions.length - i2);
-        }
-
-        private void doSwap(int[] positions, int[] mutatedPositions) {
-            System.arraycopy(positions, 0, mutatedPositions, 0, positions.length);
-            int i = random.nextInt(positions.length);
-            int j = random.nextInt(positions.length);
-            mutatedPositions[j] = positions[i];
-            mutatedPositions[i] = positions[j];
-        }
+    public static class Position {
+        int index;
+        double value;
     }
 
-    public class Solution {
+    public static class Solution implements Cloneable {
 
         public int[] bPositions;
         public int bIndex;
@@ -455,21 +334,44 @@ class Player {
         double[] viol;
         double meanViol;
 
-        public Solution(int containerCount, int elementCount) {
+        public Solution(int elementCount) {
             bPositions = new int[elementCount];
             b = new int[elementCount];
             viol = new double[elementCount];
         }
+
+        @Override
+        protected Object clone() throws CloneNotSupportedException {
+            Solution solution = new Solution(b.length);
+            solution.nBin = this.nBin;
+            System.arraycopy(this.b, 0, solution.b, 0, b.length);
+            System.arraycopy(this.bPositions, 0, solution.bPositions, 0, bPositions.length);
+            solution.bIndex = this.bIndex;
+            System.arraycopy(this.viol, 0, solution.viol, 0, viol.length);
+            solution.meanViol = this.meanViol;
+            return solution;
+        }
     }
 
-    public class SolutionContainer {
 
-        public int[] positions;
+    public static class SolutionContainer {
+
+        public double[] positions;
         public double cost;
         public Solution solution;
+        public double[] velocities;
 
-        public SolutionContainer(int containerCount, int elementCount) {
-            solution = new Solution(containerCount, elementCount);
+        public double[] bestPositions;
+        public double bestCost;
+        public Solution bestSolution;
+
+        public SolutionContainer(int elementCount) {
+            solution = new Solution(elementCount);
+        }
+
+        public SolutionContainer(SolutionContainer solutionContainer) throws CloneNotSupportedException {
+            solution = (Solution) solutionContainer.solution.clone();
+            velocities = solutionContainer.velocities;
         }
     }
 }

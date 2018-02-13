@@ -17,11 +17,11 @@ close all;
 
 %% Problem Definition
 
-model = CreateModel();  % Create Bin Packing Model
+boxes = CreateModel();  % Create Bin Packing Model
 
-CostFunction = @(x) BinPackingCost(x, model);  % Objective Function
+CostFunction = @(x) BinPackingCost(x, boxes);  % Objective Function
 
-nVar = 2*model.n-1;     % Number of Decision Variables
+nVar = 2*boxes.n-1;     % Number of Decision Variables
 VarSize = [1 nVar];     % Decision Variables Matrix Size
 
 
