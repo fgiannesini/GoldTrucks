@@ -1,11 +1,18 @@
 package mygeneticalgorithm;
 
-import java.util.Random;
-
 public class CrossOverer {
-    private Random random;
 
-    public CrossOverer(Random random) {
-        this.random = random;
+  public void applyCrossOver(Solution solutionToRead1, Solution solutionToRead2, Solution solutionToWrite) {
+    int[] stwContainerIndexes = solutionToWrite.containerIndexes;
+    int[] str1ContainerIndexes = solutionToRead1.containerIndexes;
+    int[] str2ContainerIndexes = solutionToRead2.containerIndexes;
+    for (int i = 0; i < stwContainerIndexes.length; i++) {
+      if (str1ContainerIndexes[i] % 2 == 0) {
+        stwContainerIndexes[i] = str1ContainerIndexes[i];
+      }
+      else {
+        stwContainerIndexes[i] = str2ContainerIndexes[i];
+      }
     }
+  }
 }

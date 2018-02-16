@@ -5,7 +5,6 @@ import org.junit.Test;
 
 import java.util.Random;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class MutatorTest {
   @Test
@@ -18,13 +17,16 @@ public class MutatorTest {
 
     Mutator mutator = new Mutator(random);
     boolean hasMutated = false;
-    for (int j = 0 ; j< 100; j++) {
+    for (int j = 0; j < 100; j++) {
       mutator.mutate(solutionToRead, solutionToWrite);
-       hasMutated = hasMutated || IntStream.range(0, containerSize).anyMatch(i -> solutionToRead.containerIndexes[i] != solutionToWrite.containerIndexes[i]);
+      hasMutated = hasMutated || IntStream.range(0, containerSize).anyMatch(
+        i -> solutionToRead.containerIndexes[i] != solutionToWrite.containerIndexes[i]);
+
       Assert.assertArrayEquals(
         IntStream.of(solutionToRead.containerIndexes).sorted().toArray(),
         IntStream.of(solutionToWrite.containerIndexes).sorted().toArray()
       );
+
     }
     Assert.assertTrue(hasMutated);
   }
