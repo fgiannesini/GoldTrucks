@@ -7,7 +7,7 @@ public class CrossOverer {
     int[] str1ContainerIndexes = solutionToRead1.containerIndexes;
     int[] str2ContainerIndexes = solutionToRead2.containerIndexes;
     for (int i = 0; i < stwContainerIndexes.length; i++) {
-      if (str1ContainerIndexes[i] % 2 == 0) {
+      if (stwContainerIndexes[i] % 2 == 0) {
         stwContainerIndexes[i] = str1ContainerIndexes[i];
       }
       else {

@@ -5,9 +5,9 @@ import java.util.stream.Collectors;
 
 public class Player {
 
-  private static final long COMPUTATION_TIME = 30;
+  private static final long COMPUTATION_TIME = 50;
   static int TRUCK_COUNT = 100;
-  private static int TRUCK_VOLUME = 100;
+  static int TRUCK_VOLUME = 100;
 
   public static void main(String args[]) {
     new Player().launch(new Scanner(System.in));
@@ -20,9 +20,9 @@ public class Player {
     Boxes boxes = createBoxes(in);
 
     int populationCount = 40;
-    int mutationCount = 0;
-    int crossOverCount = 40;
-    int newSolutionsCount = 0;
+    int mutationCount = 30;
+    int crossOverCount = 15;
+    int newSolutionsCount = 5;
 
     Solution[] solutions = new Solution[populationCount + mutationCount + crossOverCount + newSolutionsCount];
 
@@ -85,8 +85,8 @@ public class Player {
       }
     }
 
-    double[] truckWeights = new double[TRUCK_VOLUME];
-    double[] truckVolumes = new double[TRUCK_VOLUME];
+    double[] truckWeights = new double[TRUCK_COUNT];
+    double[] truckVolumes = new double[TRUCK_COUNT];
     int[] bestContainerIndexes = solutions[0].containerIndexes;
     for (int i = 0; i < bestContainerIndexes.length; i++) {
       int boxIndex = bestContainerIndexes[i];
@@ -94,7 +94,7 @@ public class Player {
       truckWeights[boxIndex] += boxes.weights[i];
     }
 
-    System.err.println("truck Volumes > 100" + Arrays.stream(truckVolumes).filter(v -> v >= 100).mapToObj(String::valueOf)
+    System.err.println("truck Volumes > " + TRUCK_VOLUME + " " + Arrays.stream(truckVolumes).filter(v -> v >= TRUCK_VOLUME).mapToObj(String::valueOf)
       .collect(Collectors.joining(" ")));
     DoubleSummaryStatistics summaryStatistics = Arrays.stream(truckWeights).summaryStatistics();
     System.err.println("Max Weight : " + summaryStatistics.getMax());

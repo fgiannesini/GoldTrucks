@@ -11,12 +11,14 @@ public class Mutator {
   }
 
   public void mutate(Solution solutionToRead, Solution solutionToWrite) {
-    solutionToWrite.containerIndexes = solutionToRead.containerIndexes.clone();
+    System.arraycopy(solutionToRead.containerIndexes, 0, solutionToWrite.containerIndexes, 0, solutionToRead.containerIndexes.length);
+
     int[] containerIndexes = solutionToWrite.containerIndexes;
 
     int length = containerIndexes.length;
-    int[] randomIndex = random.ints(length * 2, 2, length).toArray();
-    for (int i = 0; i < length; i++) {
+    int permutationCount = random.nextInt(containerIndexes.length);
+    int[] randomIndex = random.ints(permutationCount * 2, 2, length).toArray();
+    for (int i = 0; i < permutationCount; i++) {
       int i1 = randomIndex[2 * i];
       int i2 = randomIndex[2 * i + 1];
 
