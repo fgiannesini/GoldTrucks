@@ -34,6 +34,6 @@ public class CostComputer {
             minWeight = Math.min(weights[i], minWeight);
             overVolume += Math.max(volumes[i] - volumeLimit, 0);
         }
-        solution.cost = overVolume * 100 + maxWeight - minWeight;
+        solution.cost = overVolume * 1_000_000 + maxWeight - minWeight;
     }
 }

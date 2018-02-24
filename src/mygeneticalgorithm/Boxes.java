@@ -16,5 +16,4 @@ public class Boxes {
         weights[index] = weight;
         volumes[index] = volume;
     }
-
 }
